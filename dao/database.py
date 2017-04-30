@@ -1,6 +1,7 @@
 import sqlite3
 import collections
 
+from feedback import Feedback
 from dao.table import Table
 
 class Database:
@@ -57,6 +58,12 @@ class Database:
 				feedback.value
 			))
 			self._db.commit()
+		
+		def selectFeedbacks(self):
+			feedbacks = self._db.execute("select * from {};".format(
+				self._feedbacksTable.name
+			))
+			for feedback in feedbacks: yield Feedback(*feedback[1:])
 
 		def insertUnigrams(self, unigrams):
 			columns = ",".join(column.name for column in self._unigramsTable.columns[1:])

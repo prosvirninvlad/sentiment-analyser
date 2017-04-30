@@ -1,11 +1,10 @@
 #! /usr/bin/env python3
 import sys
 
-from delivery.parser import DeliveryFeedbackParser
 from delivery.parser import FeedbacksType
 from delivery.search import DeliverySearch
 from delivery.classifier import Classifier
-from dao.database import Database
+from delivery.parser import DeliveryFeedbackParser
 
 def main(args):
     if args: parseArgs(args)
@@ -26,19 +25,21 @@ def parseCollectArgs(args):
     except IndexError: help()
 
 def train():
-    pass
+    classifier = Classifier.instance()
+    classifier.train()
 
 def collect(restaurantName, feedbacksType):
     search = DeliverySearch()
-    database = Database().instance()
     parser = DeliveryFeedbackParser()
+    classifier = Classifier.instance()
     for pos, restaurant in enumerate(search.searchRestaurant(restaurantName)):
         print("({}) Parsing {}.".format(pos, restaurant.name))
         for feedback in parser.receiveFeedbacks(restaurant.id, feedbacksType):
-            database.insertFeedback(feedback)
+            classifier.appendFeedback(feedback)
 
 def classify(args):
-    negChance, posChance = Classifier().classify(args.pop())
+    classifier = Classifier.instance()
+    negChance, posChance = classifier.classify(args.pop())
     print("Результат: {}".format("-" if negChance > posChance else "+"))
 
 def help():
