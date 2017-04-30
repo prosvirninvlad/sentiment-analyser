@@ -25,7 +25,8 @@ class Database:
 			self._feedbacksTable = Table("feedbacks", (
 				("id", "integer primary key autoincrement"),
 				("content", "text"),
-				("value", "integer")
+				("value", "integer"),
+				("test", "integer"),
 			))
 			self._createTable(self._feedbacksTable)
 			self._unigramsTable = Table("unigrams", (
@@ -55,13 +56,14 @@ class Database:
 			)
 			self._db.execute(query, (
 				feedback.content,
-				feedback.value
+				feedback.value,
+				int(feedback.test)
 			))
 			self._db.commit()
 		
-		def selectFeedbacks(self):
-			feedbacks = self._db.execute("select * from {};".format(
-				self._feedbacksTable.name
+		def selectFeedbacks(self, test = False):
+			feedbacks = self._db.execute("select * from {} where test = {};".format(
+				self._feedbacksTable.name, int(test)
 			))
 			for feedback in feedbacks: yield Feedback(*feedback[1:])
 

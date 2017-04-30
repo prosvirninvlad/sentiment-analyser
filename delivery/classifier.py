@@ -18,6 +18,9 @@ class Classifier:
         
         def appendFeedback(self, feedback):
             self._database.insertFeedback(feedback)
+        
+        def appendBenchmarkFeedback(self, feedback):
+            self._database.insertBenchmarkFeedback(feedback)
 
         def train(self):
             unigrams = dict()

@@ -49,4 +49,4 @@ class DeliveryFeedbackParser:
     def parseFeedbackElement(self, element):
         value = element.classes.pop() == "plus"
         content = element.xpath("div/p").pop().text
-        return feedback.Feedback(content.strip(), value)
+        return feedback.Feedback(content.strip(), value, False)
