@@ -19,8 +19,18 @@ class Classifier:
         def appendFeedback(self, feedback):
             self._database.insertFeedback(feedback)
         
-        def appendBenchmarkFeedback(self, feedback):
-            self._database.insertBenchmarkFeedback(feedback)
+        def benchmark(self):
+            truePos = trueNeg = falsePos = falseNeg = 0
+            for feedback in self._database.selectFeedbacks(True):
+                expertValue = feedback.value
+                classifierValue = self.classify(feedback.content)
+                if expertValue:
+                    if classifierValue: truePos += 1
+                    else: falsePos += 1
+                else:
+                    if classifierValue: falseNeg += 1
+                    else: trueNeg += 1
+            return (truePos + trueNeg) / (truePos + trueNeg + falsePos + falseNeg)
 
         def train(self):
             unigrams = dict()
@@ -43,7 +53,7 @@ class Classifier:
                 result[value] = math.log(unigramsByClass[value] / feedbacks) + sum(math.log((
                     self._database.selectUnigramUsage(unigram, value) + 1) / logDenom
                 ) for unigram in unigrams)
-            return result
+            return result[0] < result[1]
 
         def _deriveUnigrams(self, content):
             return [unigram.lower() for unigram in self._unigram_regex.findall(content) if len(unigram) > 1]

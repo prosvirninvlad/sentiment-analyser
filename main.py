@@ -42,12 +42,13 @@ def collect(restaurantName, feedbacksType, benchmark = False):
             classifier.appendFeedback(feedback)
 
 def benchmark():
-    pass
+    classifier = Classifier().instance()
+    print("Accuracy: {:.2f}%".format(classifier.benchmark() * 100))
 
 def classify(args):
     classifier = Classifier.instance()
-    negChance, posChance = classifier.classify(args.pop())
-    print("Результат: {}".format("-" if negChance > posChance else "+"))
+    result = classifier.classify(args.pop())
+    print("Результат: {}".format("+" if result else "-"))
 
 def help():
     print("Usage: [--collect restaurant_name --type pos|neg [--benchmark]] [--train] [--benchmark] [--classify content]")
