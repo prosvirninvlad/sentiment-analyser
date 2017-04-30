@@ -45,18 +45,17 @@ class Database:
 			))
 			self._db.commit()
 
-		def insertFeedbacks(self, feedbacks):
+		def insertFeedback(self, feedback):
 			columns = ",".join(column.name for column in self._feedbacksTable.columns[1:])
 			query = "insert into {0} ({1}) values ({2});".format(
 				self._feedbacksTable.name,
 				columns,
 				",".join(["?"] * (len(self._feedbacksTable.columns) - 1))
 			)
-			for feedback in feedbacks:
-				self._db.execute(query, (
-					feedback.content,
-					feedback.value
-				))
+			self._db.execute(query, (
+				feedback.content,
+				feedback.value
+			))
 			self._db.commit()
 
 		def insertUnigrams(self, unigrams):
@@ -112,6 +111,11 @@ class Database:
 				return result
 			except StopIteration:
 				return 0
+		
+		def deleteUnigrams(self):
+			query = "delete from {}".format(self._unigramsTable.name)
+			self._db.execute(query)
+			self._db.commit()
 
 		def close(self):
 			self._db.close()

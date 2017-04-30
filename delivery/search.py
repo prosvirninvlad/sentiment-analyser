@@ -20,12 +20,12 @@ class DeliverySearch:
     def sendSearchApiRequest(self, url):
         curlHandler = Curl()
         response = curlHandler.sendGetRequest(url)
-        return self.parseApiResponse(response) if response else []
+        return self.parseApiResponse(response) if response else tuple()
 
     def parseApiResponse(self, response):
         decoder = json.JSONDecoder()
         restaurants = decoder.decode(response)
-        return [self.parseJsonElement(restaurant) for restaurant in restaurants]
+        for restaurant in restaurants: yield self.parseJsonElement(restaurant)
 
     def parseJsonElement(self, element):
         name = element.get("title", "")

@@ -28,11 +28,9 @@ class DeliveryFeedbackParser:
             return 0
 
     def parseFeedbacksPages(self, restaurantId, feedbacksType, pagesAmount):
-        feedbacks = []
         for pageId in range(1, pagesAmount + 1):
             pageTree = self.receivePageTree(restaurantId, feedbacksType, pageId)
-            if pageTree is not None: feedbacks.extend(self.deriveFeedbacks(pageTree))
-        return feedbacks
+            yield from self.deriveFeedbacks(pageTree)
 
     def receivePageTree(self, restaurantId, feedbacksType, pageId = 1):
         restaurantUrl = self.prepareRestaurantUrl(restaurantId, feedbacksType, pageId)
