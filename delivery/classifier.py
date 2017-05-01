@@ -30,9 +30,9 @@ class Classifier:
                 print("({}): {}/{}".format(num, expertValue, classifierValue))
                 if expertValue:
                     if classifierValue: truePos += 1
-                    else: falsePos += 1
+                    else: falseNeg += 1
                 else:
-                    if classifierValue: falseNeg += 1
+                    if classifierValue: falsePos += 1
                     else: trueNeg += 1
             accuracy = (truePos + trueNeg) / (truePos + trueNeg + falsePos + falseNeg)
             posPrecision = truePos / (truePos + falsePos)
