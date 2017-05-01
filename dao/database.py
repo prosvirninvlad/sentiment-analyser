@@ -14,7 +14,7 @@ class Database:
 
 	class __Database:
 		def __init__(self):
-			self._db_name = "Analyse.db"
+			self._db_name = "analyser.db"
 			self._db = sqlite3.connect(self._db_name)
 			self._initTables()
 
