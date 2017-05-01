@@ -1,6 +1,6 @@
-import re
 import math
 
+from lingua import Lingua
 from dao.database import Database
 
 class Classifier:
@@ -13,8 +13,8 @@ class Classifier:
     
     class __Classifier:
         def __init__(self):
+            self._lingua = Lingua.instance()
             self._database = Database.instance()
-            self._unigram_regex = re.compile(r"([а-яА-Яa-zA-Z]+)")
             self._unigramsByClass = self._database.countUnigrams()
             self._uniqueUnigrams = self._database.countUniqueUnigrams()
             self._feedbacks = sum(self._database.countFeedbacksByClass(value) for value in range(2))
@@ -48,20 +48,17 @@ class Classifier:
         def train(self):
             unigrams = dict()
             for feedback in self._database.selectFeedbacks():
-                for unigram in self._deriveUnigrams(feedback.content):
+                for unigram in self._lingua.vectorize(feedback.content):
                     unigrams.setdefault(unigram, [0, 0])[feedback.value] += 1
             self._database.deleteUnigrams()
             self._database.insertUnigrams(unigrams)
 
         def classify(self, content):
             result = [0, 0]
-            unigrams = self._deriveUnigrams(content)
+            unigrams = self._lingua.vectorize(content)
             for value in range(2):
                 logDenom = self._uniqueUnigrams + self._unigramsByClass[value]
                 result[value] = math.log(self._unigramsByClass[value] / self._feedbacks) + sum(math.log((
                     self._database.selectUnigramUsage(unigram, value) + 1) / logDenom
                 ) for unigram in unigrams)
             return result[0] < result[1]
-
-        def _deriveUnigrams(self, content):
-            return [unigram.lower() for unigram in self._unigram_regex.findall(content) if len(unigram) > 1]
