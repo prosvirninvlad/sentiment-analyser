@@ -15,13 +15,16 @@ class Lingua:
 			self._unigram_regex = re.compile(r"([а-яА-Яa-zA-Z]+)")
 
 		def vectorize(self, content):
-			return self._genUnigrams(content)
+			unigrams = []
+			for unigram in self._genUnigrams(content):
+				parse = self._morphy.parse(unigram).pop()
+				unigrams.append(parse.normal_form)
+			return unigrams
 		
 		def process(self, content):
 			for sentence in self._genSentences(content):
 				print(sentence)
 				for unigram in self._genUnigrams(sentence):
-
 					print("{}: {}".format(unigram, ", ".join(p.tag.POS for p in self._morphy.parse(unigram))))
 				print("-" * 80)
 		
