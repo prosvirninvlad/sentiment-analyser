@@ -25,7 +25,7 @@ class Classifier:
         def benchmark(self):
             truePos = trueNeg = falsePos = falseNeg = 0
             for num, feedback in enumerate(self._database.selectFeedbacks(True)):
-                expertValue = feedback.value
+                expertValue = bool(feedback.value)
                 classifierValue = self.classify(feedback.content)
                 print("({}): {}/{}".format(num, expertValue, classifierValue))
                 if expertValue:

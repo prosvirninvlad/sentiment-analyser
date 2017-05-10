@@ -1,6 +1,25 @@
 import re
 import pymorphy2
 
+class Word:
+	NOUN = "NOUN"
+	ADJF = "ADJF"
+	ADJS = "ADJS"
+	COMP = "COMP"
+	VERB = "VERB"
+	INFN = "INFN"
+	PRTF = "PRTF"
+	PRTS = "PRTS"
+	GRND = "GRND"
+	NUMR = "NUMR"
+	ADVB = "ADVB"
+	NPRO = "NPRO"
+	PRED = "PRED"
+	PREP = "PREP"
+	CONJ = "CONJ"
+	PRCL = "PRCL"
+	INTJ = "INTJ"
+
 class Lingua:
 	_instance = None
 	@staticmethod
@@ -12,24 +31,56 @@ class Lingua:
 	class __Lingua:
 		def __init__(self):
 			self._morphy = pymorphy2.MorphAnalyzer()
-			self._unigram_regex = re.compile(r"([а-яА-Яa-zA-Z]+)")
+			self._unigram_regex = re.compile(r"([а-яёЁА-Яa-zA-Z]+|[,;])")
 
 		def vectorize(self, content):
+			return self._genUnigrams(content)
+			# return self.analyse(content)
+			bigram = ""
 			unigrams = []
+			append = False
 			for unigram in self._genUnigrams(content):
-				parse = self._morphy.parse(unigram).pop()
-				unigrams.append(parse.normal_form)
+				# unigram = self._morphy.parse(unigram).pop()
+				# unigram = unigram.normal_form
+				if append:
+					unigrams.append("{} {}".format(bigram, unigram))
+				bigram = unigram
+				append = not append
 			return unigrams
+
+		def analyse(self, content):
+			sentences = self._genSentences(content)
+			for sentence in sentences: self._analyseSentence(sentence)
 		
-		def process(self, content):
-			for sentence in self._genSentences(content):
-				print(sentence)
-				for unigram in self._genUnigrams(sentence):
-					print("{}: {}".format(unigram, ", ".join(p.tag.POS for p in self._morphy.parse(unigram))))
-				print("-" * 80)
+		def _analyseSentence(self, sentence):
+			noun = adjv = ""
+			for p in sentence.split(","):
+				unigrams = tuple(self._genUnigrams(p))
+				for x in range(len(unigrams)):
+					for y in range(x + 1, len(unigrams)):
+						unigramA = unigrams[x]
+						unigramB = unigrams[y]
+						namingA = self._getWordNaming(unigramA)
+						namingB = self._getWordNaming(unigramB)
+						sign = namingA == Word.ADJF and namingB == Word.NOUN
+						sign = namingA == Word.NOUN and namingB == Word.ADJF or sign
+						if (sign): print("{} {}".format(unigramA, unigramB))
 		
-		def _normalize(self):
-			pass
+		def _getWordNaming(self, word):
+			parsed = self._morphy.parse(word)
+			voting = dict()
+			for parse in parsed:
+				parse = parse.tag.POS
+				voting.setdefault(parse, 0)
+				voting[parse] += 1
+			naming = max(voting, key = lambda x: voting[x])
+			return self._normalizeWordNaming(naming)
+		
+		def _normalizeWordNaming(self, naming):
+			if naming == Word.ADJS: naming = Word.ADJF
+			elif naming == Word.INFN: naming = Word.VERB
+			elif naming == Word.PRTS: naming = Word.PRTF
+			return naming
 		
 		def _genSentences(self, content):
 			yield from re.split("[?!.]", content)
@@ -39,9 +90,11 @@ class Lingua:
 				if len(unigram) > 1: yield unigram.lower()
 
 if __name__ == "__main__":
-	content = """Все было очень вкусно. Прекрасные роллы с кучей рыбы. Мидии пробовал в 
-	первый раз, вкуснота. единственный минус - дороговато, но еда понравилось. если захочу 
-	сушей - обязательно возьму там же.
-	"""
+	contents = [
+		"Еда была теплая, читал отзывы, боялся, что будет холоднее, но по мне все отлично! Бургеры с закуской были восхитительные, с радостью буду заказывать у вас снова :)",
+		"Заказ привезли в оговоренный срок. Еда вкусная, не остывшая",
+		"Бургер был вкусный, реально, все остальное так себе"
+	]
 	lingua = Lingua.instance()
-	lingua.process(content)
+	for content in contents:
+		lingua.analyse(content)
