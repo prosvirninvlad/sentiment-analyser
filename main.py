@@ -21,23 +21,24 @@ def parseArgs(args):
 def parseCollectArgs(args):
     try:
         restaurantName = args[0]
-        benchmark = args[3] if len(args) > 3 else ""
+        benchmark = args[5] if len(args) > 5 else ""
+        number = int(args[4]) if len(args) > 4 else 0
         benchmark = True if benchmark == "--benchmark" else False
         feedbacksType =  FeedbacksType.NEGATIVE if args[2] == "neg" else FeedbacksType.POSITIVE
-        collect(restaurantName, feedbacksType, benchmark)
+        collect(restaurantName, feedbacksType, benchmark, number)
     except IndexError: help()
 
 def train():
     classifier = Classifier.instance()
     classifier.train()
 
-def collect(restaurantName, feedbacksType, benchmark = False):
+def collect(restaurantName, feedbacksType, benchmark = False, howMany = 0):
     search = DeliverySearch()
     parser = DeliveryFeedbackParser()
     classifier = Classifier.instance()
     for pos, restaurant in enumerate(search.searchRestaurant(restaurantName)):
         print("({}) Parsing {}.".format(pos, restaurant.name))
-        for feedback in parser.receiveFeedbacks(restaurant.id, feedbacksType):
+        for feedback in parser.receiveFeedbacks(restaurant.id, feedbacksType, howMany):
             feedback.test = benchmark
             classifier.appendFeedback(feedback)
 
@@ -51,7 +52,7 @@ def classify(args):
     print("Результат: {}".format("+" if result else "-"))
 
 def help():
-    print("Usage: [--collect restaurant_name --type pos|neg [--benchmark]] [--train] [--benchmark] [--classify content]")
+    print("Usage: [--collect restaurant_name --type pos|neg --how-many number [--benchmark]] [--train] [--benchmark] [--classify content]")
 
 if __name__ == "__main__":
     if sys.argv: main(sys.argv[1:])

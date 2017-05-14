@@ -23,6 +23,7 @@ class Classifier:
                 (Word.PRCL, Word.VERB),
                 (Word.PRCL, Word.ADJF),
                 (Word.PRCL, Word.ADVB),
+                (Word.ADVB, Word.ADVB),
             )
             self._lingua = Lingua.instance()
             self._database = Database.instance()
