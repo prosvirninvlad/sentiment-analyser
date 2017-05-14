@@ -55,7 +55,7 @@ class Classifier:
 
         def classify(self, content):
             result = [0, 0]
-            unigrams = self._lingua.vectorize(content)
+            unigrams = tuple(self._lingua.vectorize(content))
             for value in range(2):
                 logDenom = self._uniqueUnigrams + self._unigramsByClass[value]
                 result[value] = math.log(self._unigramsByClass[value] / self._feedbacks) + sum(math.log((

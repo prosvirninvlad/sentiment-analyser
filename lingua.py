@@ -34,19 +34,9 @@ class Lingua:
 			self._unigram_regex = re.compile(r"([а-яёЁА-Яa-zA-Z]+|[,;])")
 
 		def vectorize(self, content):
-			return self._genUnigrams(content)
-			# return self.analyse(content)
-			bigram = ""
-			unigrams = []
-			append = False
-			for unigram in self._genUnigrams(content):
-				# unigram = self._morphy.parse(unigram).pop()
-				# unigram = unigram.normal_form
-				if append:
-					unigrams.append("{} {}".format(bigram, unigram))
-				bigram = unigram
-				append = not append
-			return unigrams
+			unigrams = tuple(self._genUnigrams(content))
+			for i in range(len(unigrams) - 1):
+				yield "{} {}".format(unigrams[i], unigrams[i + 1])
 
 		def analyse(self, content):
 			sentences = self._genSentences(content)
