@@ -37,15 +37,18 @@ class Lingua:
 			return self._genBigrams(content)
 		
 		def _genBigrams(self, content):
-			unigrams = tuple(self._genUnigrams(content))
-			for i in range(len(unigrams) - 1):
-				yield (unigrams[i], unigrams[i + 1])
-		
+			for sentence in self._genSentences(content):
+				for area in [x.strip() for x in sentence.split(",")]:
+					unigrams = self._genUnigrams(area)
+					for i in range(len(unigrams) - 1):
+						yield (unigrams[i], unigrams[i + 1])
+
 		def concatenateUnigrams(self, unigrams):
 			return " ".join(unigrams)
 		
 		def matchMorphyPatterns(self, bigram, patterns):
 			namings = tuple(self._getWordNaming(unigram) for unigram in bigram)
+			# print("{} {}: {} {}".format(*bigram, *namings))
 			matched = False
 			for pattern in patterns:
 				matched |= namings == pattern
@@ -89,5 +92,4 @@ class Lingua:
 			yield from re.split("[?!.]", content)
 
 		def _genUnigrams(self, content):
-			for unigram in self._unigram_regex.findall(content):
-				if len(unigram) > 1: yield unigram.lower()
+			return [unigram.lower() for unigram in self._unigram_regex.findall(content) if len(unigram) > 1]

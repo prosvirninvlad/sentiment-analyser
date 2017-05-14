@@ -16,14 +16,22 @@ class Classifier:
     class __Classifier:
         def __init__(self):
             self.patterns = (
+                # Существительное и прилагательное
                 (Word.NOUN, Word.ADJF),
                 (Word.ADJF, Word.NOUN),
-                (Word.VERB, Word.PRTF),
-                (Word.PRTF, Word.VERB),
-                (Word.PRCL, Word.VERB),
-                (Word.PRCL, Word.ADJF),
-                (Word.PRCL, Word.ADVB),
+                # Наречие и наречие
                 (Word.ADVB, Word.ADVB),
+                # Существительное и наречие
+                (Word.ADJF, Word.ADVB),
+                (Word.ADVB, Word.ADJF),
+                # Глагол и наречие
+                (Word.ADVB, Word.VERB),
+                (Word.VERB, Word.ADVB),
+                # Прилагательное и прилагательное
+                (Word.ADJF, Word.ADJF),
+                # Глагол и прилагательное
+                (Word.VERB, Word.ADJF),
+                (Word.ADJF, Word.VERB),
             )
             self._lingua = Lingua.instance()
             self._database = Database.instance()
@@ -81,7 +89,7 @@ class Classifier:
                     unigramsFrequency = reduce(lambda res, x: res * x, unigramsFrequency, 1.)
                     measure += math.log(bigramFrequency * ngramsSum[i] / unigramsFrequency, 2)
                 measure /= 2.
-                if measure > 18:
+                if measure > 16:
                     result[self._lingua.concatenateUnigrams(bigram)] = bigrams[bigram]
 
             self._database.deleteUnigrams()
@@ -92,6 +100,9 @@ class Classifier:
             unigrams = filter(lambda x: self._lingua.matchMorphyPatterns(
                 x, self.patterns), self._lingua.vectorize(content))
             unigrams = tuple(self._lingua.concatenateUnigrams(bigram) for bigram in unigrams)
+            # print(content)
+            # print(unigrams)
+            # input()
             for value in range(2):
                 logDenom = self._uniqueUnigrams + self._unigramsByClass[value]
                 result[value] = math.log(self._unigramsByClass[value] / self._feedbacks) + sum(math.log((
