@@ -34,9 +34,22 @@ class Lingua:
 			self._unigram_regex = re.compile(r"([а-яёЁА-Яa-zA-Z]+|[,;])")
 
 		def vectorize(self, content):
+			return self._genBigrams(content)
+		
+		def _genBigrams(self, content):
 			unigrams = tuple(self._genUnigrams(content))
 			for i in range(len(unigrams) - 1):
-				yield "{} {}".format(unigrams[i], unigrams[i + 1])
+				yield (unigrams[i], unigrams[i + 1])
+		
+		def concatenateUnigrams(self, unigrams):
+			return " ".join(unigrams)
+		
+		def matchMorphyPatterns(self, bigram, patterns):
+			namings = tuple(self._getWordNaming(unigram) for unigram in bigram)
+			matched = False
+			for pattern in patterns:
+				matched |= namings == pattern
+			return matched
 
 		def analyse(self, content):
 			sentences = self._genSentences(content)
@@ -78,13 +91,3 @@ class Lingua:
 		def _genUnigrams(self, content):
 			for unigram in self._unigram_regex.findall(content):
 				if len(unigram) > 1: yield unigram.lower()
-
-if __name__ == "__main__":
-	contents = [
-		"Еда была теплая, читал отзывы, боялся, что будет холоднее, но по мне все отлично! Бургеры с закуской были восхитительные, с радостью буду заказывать у вас снова :)",
-		"Заказ привезли в оговоренный срок. Еда вкусная, не остывшая",
-		"Бургер был вкусный, реально, все остальное так себе"
-	]
-	lingua = Lingua.instance()
-	for content in contents:
-		lingua.analyse(content)

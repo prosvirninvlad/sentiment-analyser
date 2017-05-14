@@ -1,5 +1,7 @@
 import math
+from functools import reduce
 
+from lingua import Word
 from lingua import Lingua
 from dao.database import Database
 
@@ -13,6 +15,15 @@ class Classifier:
     
     class __Classifier:
         def __init__(self):
+            self.patterns = (
+                (Word.NOUN, Word.ADJF),
+                (Word.ADJF, Word.NOUN),
+                (Word.VERB, Word.PRTF),
+                (Word.PRTF, Word.VERB),
+                (Word.PRCL, Word.VERB),
+                (Word.PRCL, Word.ADJF),
+                (Word.PRCL, Word.ADVB),
+            )
             self._lingua = Lingua.instance()
             self._database = Database.instance()
             self._unigramsByClass = self._database.countUnigrams()
@@ -46,16 +57,40 @@ class Classifier:
             return accuracy
 
         def train(self):
+            bigrams = dict()
             unigrams = dict()
             for feedback in self._database.selectFeedbacks():
-                for unigram in self._lingua.vectorize(feedback.content):
-                    unigrams.setdefault(unigram, [0, 0])[feedback.value] += 1
+                for bigram in filter(lambda x: self._lingua.matchMorphyPatterns(
+                    x, self.patterns), self._lingua.vectorize(feedback.content)
+                ):
+                    bigrams.setdefault(bigram, [1, 1])[feedback.value] += 1
+                    for unigram in bigram:
+                        unigrams.setdefault(unigram, [1, 1])[feedback.value] += 1
+            
+            bigramsSum = [sum(bigrams[key][i] for key in bigrams) for i in range(2)]
+            unigramsSum = [sum(unigrams[key][i] for key in unigrams) for i in range(2)]
+            ngramsSum = [bigramsSum[i] + unigramsSum[i] for i in range(2)]
+
+            result = dict()
+            for bigram in bigrams:
+                measure = 0
+                for i in range(2):
+                    bigramFrequency = bigrams[bigram][i] / bigramsSum[i]
+                    unigramsFrequency = [unigrams[unigram][i] / unigramsSum[i] for unigram in bigram]
+                    unigramsFrequency = reduce(lambda res, x: res * x, unigramsFrequency, 1.)
+                    measure += math.log(bigramFrequency * ngramsSum[i] / unigramsFrequency, 2)
+                measure /= 2.
+                if measure > 18:
+                    result[self._lingua.concatenateUnigrams(bigram)] = bigrams[bigram]
+
             self._database.deleteUnigrams()
-            self._database.insertUnigrams(unigrams)
+            self._database.insertUnigrams(result)
 
         def classify(self, content):
             result = [0, 0]
-            unigrams = tuple(self._lingua.vectorize(content))
+            unigrams = filter(lambda x: self._lingua.matchMorphyPatterns(
+                x, self.patterns), self._lingua.vectorize(content))
+            unigrams = tuple(self._lingua.concatenateUnigrams(bigram) for bigram in unigrams)
             for value in range(2):
                 logDenom = self._uniqueUnigrams + self._unigramsByClass[value]
                 result[value] = math.log(self._unigramsByClass[value] / self._feedbacks) + sum(math.log((
