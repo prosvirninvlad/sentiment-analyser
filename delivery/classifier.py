@@ -15,24 +15,6 @@ class Classifier:
     
     class __Classifier:
         def __init__(self):
-            self.patterns = (
-                # Существительное и прилагательное
-                (Word.NOUN, Word.ADJF),
-                (Word.ADJF, Word.NOUN),
-                # Наречие и наречие
-                (Word.ADVB, Word.ADVB),
-                # Существительное и наречие
-                (Word.ADJF, Word.ADVB),
-                (Word.ADVB, Word.ADJF),
-                # Глагол и наречие
-                (Word.ADVB, Word.VERB),
-                (Word.VERB, Word.ADVB),
-                # Прилагательное и прилагательное
-                (Word.ADJF, Word.ADJF),
-                # Глагол и прилагательное
-                (Word.VERB, Word.ADJF),
-                (Word.ADJF, Word.VERB),
-            )
             self._lingua = Lingua.instance()
             self._database = Database.instance()
             self._unigramsByClass = self._database.countUnigrams()
@@ -69,9 +51,10 @@ class Classifier:
             bigrams = dict()
             unigrams = dict()
             for feedback in self._database.selectFeedbacks():
-                for bigram in filter(lambda x: self._lingua.matchMorphyPatterns(
-                    x, self.patterns), self._lingua.vectorize(feedback.content)
-                ):
+                for bigram in filter(lambda x: x is not None, map(
+                    self._lingua.matchMorphyPatterns,
+                    self._lingua.vectorize(feedback.content)
+                )):
                     bigrams.setdefault(bigram, [1, 1])[feedback.value] += 1
                     for unigram in bigram:
                         unigrams.setdefault(unigram, [1, 1])[feedback.value] += 1
@@ -89,7 +72,7 @@ class Classifier:
                     unigramsFrequency = reduce(lambda res, x: res * x, unigramsFrequency, 1.)
                     measure += math.log(bigramFrequency * ngramsSum[i] / unigramsFrequency, 2)
                 measure /= 2.
-                if measure > 16:
+                if measure > 14:
                     result[self._lingua.concatenateUnigrams(bigram)] = bigrams[bigram]
 
             self._database.deleteUnigrams()
@@ -97,8 +80,10 @@ class Classifier:
 
         def classify(self, content):
             result = [0, 0]
-            unigrams = filter(lambda x: self._lingua.matchMorphyPatterns(
-                x, self.patterns), self._lingua.vectorize(content))
+            unigrams = filter(lambda x: x is not None, map(
+                self._lingua.matchMorphyPatterns,
+                self._lingua.vectorize(content)
+            ))
             unigrams = tuple(self._lingua.concatenateUnigrams(bigram) for bigram in unigrams)
             # print(content)
             # print(unigrams)

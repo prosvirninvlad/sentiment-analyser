@@ -20,6 +20,15 @@ class Word:
 	PRCL = "PRCL"
 	INTJ = "INTJ"
 
+BIGRAM_PATTERNS = (
+	(Word.NOUN, Word.ADJF),
+	(Word.ADVB, Word.ADVB),
+	(Word.ADJF, Word.ADVB),
+	(Word.ADVB, Word.VERB),
+	(Word.ADJF, Word.ADJF),
+	(Word.VERB, Word.ADJF),
+)
+
 class Lingua:
 	_instance = None
 	@staticmethod
@@ -31,14 +40,14 @@ class Lingua:
 	class __Lingua:
 		def __init__(self):
 			self._morphy = pymorphy2.MorphAnalyzer()
-			self._unigram_regex = re.compile(r"([а-яёЁА-Яa-zA-Z]+|[,;])")
+			self._unigram_regex = re.compile(r"([а-яёЁА-Яa-zA-Z]+)")
 
 		def vectorize(self, content):
 			return self._genBigrams(content)
 		
 		def _genBigrams(self, content):
 			for sentence in self._genSentences(content):
-				for area in [x.strip() for x in sentence.split(",")]:
+				for area in [x.strip() for x in re.split("[;,]", sentence)]:
 					unigrams = self._genUnigrams(area)
 					for i in range(len(unigrams) - 1):
 						yield (unigrams[i], unigrams[i + 1])
@@ -46,13 +55,14 @@ class Lingua:
 		def concatenateUnigrams(self, unigrams):
 			return " ".join(unigrams)
 		
-		def matchMorphyPatterns(self, bigram, patterns):
+		def matchMorphyPatterns(self, bigram):
 			namings = tuple(self._getWordNaming(unigram) for unigram in bigram)
 			# print("{} {}: {} {}".format(*bigram, *namings))
-			matched = False
-			for pattern in patterns:
-				matched |= namings == pattern
-			return matched
+			for pattern in BIGRAM_PATTERNS:
+				if namings == pattern: return bigram
+				reverse = tuple(reversed(namings))
+				if reverse == pattern: return tuple(reversed(bigram))
+			return None
 
 		def analyse(self, content):
 			sentences = self._genSentences(content)
