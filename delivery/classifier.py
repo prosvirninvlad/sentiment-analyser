@@ -28,8 +28,8 @@ class Classifier:
             truePos = trueNeg = falsePos = falseNeg = 0
             for num, feedback in enumerate(self._database.selectFeedbacks(True)):
                 expertValue = bool(feedback.value)
-                classifierValue = self.classify(feedback.content)
-                print("({}): {}/{}".format(num, expertValue, classifierValue))
+                classifierValue, percentages = self.classify(feedback.content)
+                print("({}): {}/{} (+: {:.2f}%, -: {:.2f}%)".format(num, expertValue, classifierValue, *percentages))
                 if expertValue:
                     if classifierValue: truePos += 1
                     else: falseNeg += 1
@@ -85,12 +85,14 @@ class Classifier:
                 self._lingua.vectorize(content)
             ))
             unigrams = tuple(self._lingua.concatenateUnigrams(bigram) for bigram in unigrams)
-            # print(content)
-            # print(unigrams)
-            # input()
             for value in range(2):
                 logDenom = self._uniqueUnigrams + self._unigramsByClass[value]
                 result[value] = math.log(self._unigramsByClass[value] / self._feedbacks) + sum(math.log((
                     self._database.selectUnigramUsage(unigram, value) + 1) / logDenom
                 ) for unigram in unigrams)
-            return result[0] < result[1]
+            exps = [math.exp(val) for val in result]
+            exps = [exp / sum(exps) * 100 for exp in exps]
+            # print(content)
+            # print(unigrams)
+            # input()
+            return result[0] < result[1], exps

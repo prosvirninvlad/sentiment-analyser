@@ -48,7 +48,8 @@ def benchmark():
 
 def classify(args):
     classifier = Classifier.instance()
-    result = classifier.classify(args.pop())
+    result, percentages = classifier.classify(args.pop())
+    print("-: {:.2f}%\n+: {:.2f}%".format(*percentages))
     print("Результат: {}".format("+" if result else "-"))
 
 def help():
