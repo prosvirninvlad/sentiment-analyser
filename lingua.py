@@ -1,4 +1,5 @@
 import re
+import Stemmer
 import pymorphy2
 
 class Word:
@@ -40,6 +41,7 @@ class Lingua:
 	class __Lingua:
 		def __init__(self):
 			self._morphy = pymorphy2.MorphAnalyzer()
+			self._stemmer = Stemmer.Stemmer("russian")
 			self._unigram_regex = re.compile(r"([а-яёЁА-Яa-zA-Z]+)")
 
 		def vectorize(self, content):
@@ -59,9 +61,9 @@ class Lingua:
 			namings = tuple(self._getWordNaming(unigram) for unigram in bigram)
 			# print("{} {}: {} {}".format(*bigram, *namings))
 			for pattern in BIGRAM_PATTERNS:
-				if namings == pattern: return bigram
+				if namings == pattern: return tuple(self._stemmer.stemWords(bigram))
 				reverse = tuple(reversed(namings))
-				if reverse == pattern: return tuple(reversed(bigram))
+				if reverse == pattern: return tuple(self._stemmer.stemWords(reversed(bigram)))
 			return None
 
 		def analyse(self, content):
