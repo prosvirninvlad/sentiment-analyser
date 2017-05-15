@@ -29,6 +29,7 @@ BIGRAM_PATTERNS = (
 	(Word.ADJF, Word.ADJF),
 	(Word.VERB, Word.ADJF),
 	(Word.VERB, Word.PRTF),
+	(Word.PRCL, Word.VERB),
 )
 
 class Lingua:
