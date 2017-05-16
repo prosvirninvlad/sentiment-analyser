@@ -18,6 +18,7 @@ class Classifier:
         def __init__(self):
             self._lingua = Lingua.instance()
             self._database = Database.instance()
+            self._bigramsCount = self._database.countBigrams()
             self._unigramsByClass = self._database.countUnigrams()
             self._uniqueUnigrams = self._database.countUniqueUnigrams()
             self._feedbacks = sum(self._database.countFeedbacksByClass(value) for value in range(2))
@@ -29,13 +30,14 @@ class Classifier:
             truePos = trueNeg = falsePos = falseNeg = 0
             for num, feedback in enumerate(self._database.selectFeedbacks(True)):
                 expertValue = bool(feedback.value)
-                classifierValue, percentages = self.classify(feedback.content)
-                print("({}): {}/{} (+: {:.2f}%, -: {:.2f}%)".format(num, expertValue, classifierValue, *percentages))
+                negChance, posChance = self.classify(feedback.content)
+                classfValue = posChance > negChance
+                print("({}): {}/{} (-: {:.2f}%, +: {:.2f}%)".format(num, expertValue, classfValue, negChance, posChance))
                 if expertValue:
-                    if classifierValue: truePos += 1
+                    if classfValue: truePos += 1
                     else: falseNeg += 1
                 else:
-                    if classifierValue: falsePos += 1
+                    if classfValue: falsePos += 1
                     else: trueNeg += 1
             accuracy = (truePos + trueNeg) / (truePos + trueNeg + falsePos + falseNeg)
             posPrecision = truePos / (truePos + falsePos)
@@ -64,28 +66,28 @@ class Classifier:
 
         def removeUselessBigrams(self):
             self._database.deleteUnigrams()
-            pos, neg = self._database.countBigrams()
             for bigram in self._database.selectBigrams():
-                success = True
                 unigramA, unigramB, *repeats = bigram
-                for value in range(2):
-                    XY, XNY, NXY, NXNY = [usage / pos for usage in self._database.countBigramUsage((unigramA, unigramB), value)]
-                    success &= math.log(XY / ((XY + XNY) * (XY + NXY) / (XY + XNY + NXY + NXNY)), 2) > 3
-                if success:
+                if self.validateBigram((unigramA, unigramB)):
                     self._database.insertUnigram(("{} {}".format(unigramA, unigramB), *repeats))
+        
+        def validateBigram(self, bigram):
+            THRESHOLD = 3
+            measure = 0
+            for value in range(2):
+                XY, XNY, NXY, NXNY = [usage / self._bigramsCount[value] for usage in self._database.countBigramUsage(bigram, value)]
+                measure += math.log(XY / ((XY + XNY) * (XY + NXY) / (XY + XNY + NXY + NXNY)), 2)
+            return (measure / 2.) > THRESHOLD
 
         def classify(self, content):
             result = [0, 0]
             unigrams = self._lingua.vectorize(content)
-            unigrams = tuple(self._lingua.concatenateUnigrams(bigram) for bigram in unigrams)
+            unigrams = [self._lingua.concatenateUnigrams(bigram) for bigram in unigrams if self.validateBigram(bigram)]
             for value in range(2):
                 logDenom = self._uniqueUnigrams + self._unigramsByClass[value]
                 result[value] = math.log(self._unigramsByClass[value] / self._feedbacks) + sum(math.log((
                     self._database.selectUnigramUsage(unigram, value) + 1) / logDenom
                 ) for unigram in unigrams)
-            exps = [math.exp(val) for val in result]
-            exps = [exp / (sum(exps) + 0.01) * 100 for exp in exps]
-            # print(content)
-            # print(unigrams)
-            # input()
-            return result[0] < result[1], exps
+            result = [math.exp(val) for val in result]
+            result = [val / sum(result) * 100 for val in result]
+            return result
