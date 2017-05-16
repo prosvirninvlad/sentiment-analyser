@@ -36,6 +36,14 @@ class Database:
 				("posFrequency", "integer")
 			))
 			self._createTable(self._unigramsTable)
+			self._bigramsTable = Table("bigrams", (
+				("id", "integer primary key autoincrement"),
+				("unigramA", "text"),
+				("unigramB", "text"),
+				("negFrequency", "integer"),
+				("posFrequency", "integer")
+			))
+			self._createTable(self._bigramsTable)
 
 		def _createTable(self, table, alter = ""):
 			columns = ["{0} {1}".format(column.name, column.dataType) for column in table.columns]
@@ -80,6 +88,56 @@ class Database:
 					*unigrams[unigram]
 				))
 			self._db.commit()
+		
+		def insertUnigram(self, unigram):
+			columns = ",".join(column.name for column in self._unigramsTable.columns[1:])
+			query = "insert into {0} ({1}) values ({2});".format(
+				self._unigramsTable.name,
+				columns,
+				",".join(["?"] * (len(self._unigramsTable.columns) - 1))
+			)
+			self._db.execute(query, unigram)
+			self._db.commit()
+		
+		def insertBigrams(self, bigrams):
+			columns = ",".join(column.name for column in self._bigramsTable.columns[1:])
+			query = "insert into {0} ({1}) values ({2});".format(
+				self._bigramsTable.name,
+				columns,
+				",".join(["?"] * (len(self._bigramsTable.columns) - 1))
+			)
+			for X in bigrams:
+				for Y in bigrams[X]:
+					self._db.execute(query, (X, Y, *bigrams[X][Y]))
+			self._db.commit()
+		
+		def countBigramUsage(self, bigram, posFrequency):
+			query = "select sum({}) from {} where %s unigramA = ? and %s unigramB = ?;".format(
+				"posFrequency" if posFrequency else "negFrequency",
+				self._bigramsTable.name)
+			usage = []
+			quantors = ("", "not")
+			for x in quantors:
+				for y in quantors:
+					result = self._db.execute(query % (x, y), bigram)
+					result, *_ = next(result)
+					result = 1 if (result is None or result == 0) else result
+					usage.append(result)
+			return usage
+
+		def countBigrams(self):
+			result = self._db.execute("select sum(negFrequency), sum(posFrequency) from {};".format(
+				self._bigramsTable.name
+			))
+			return next(result)
+		
+		def selectBigrams(self):
+			columns = ",".join(column.name for column in self._bigramsTable.columns[1:])
+			result = self._db.execute("select {} from {};".format(
+				columns,
+				self._bigramsTable.name
+			))
+			yield from result
 
 		def countFeedbacksByClass(self, value):
 			result = self._db.execute("select count(*) from {} where value = {};".format(
@@ -123,6 +181,11 @@ class Database:
 		
 		def deleteUnigrams(self):
 			query = "delete from {}".format(self._unigramsTable.name)
+			self._db.execute(query)
+			self._db.commit()
+		
+		def deleteBigrams(self):
+			query = "delete from {}".format(self._bigramsTable.name)
 			self._db.execute(query)
 			self._db.commit()
 

@@ -1,4 +1,5 @@
 import math
+import sqlite3
 from functools import reduce
 
 from lingua import Word
@@ -48,42 +49,34 @@ class Classifier:
             return accuracy
 
         def train(self):
+            # self.collectBigrams()
+            self.removeUselessBigrams()
+        
+        def collectBigrams(self):
             bigrams = dict()
-            unigrams = dict()
             for feedback in self._database.selectFeedbacks():
-                for bigram in filter(lambda x: x is not None, map(
-                    self._lingua.matchMorphyPatterns,
-                    self._lingua.vectorize(feedback.content)
-                )):
-                    bigrams.setdefault(bigram, [1, 1])[feedback.value] += 1
-                    for unigram in bigram:
-                        unigrams.setdefault(unigram, [1, 1])[feedback.value] += 1
-            
-            bigramsSum = [sum(bigrams[key][i] for key in bigrams) for i in range(2)]
-            unigramsSum = [sum(unigrams[key][i] for key in unigrams) for i in range(2)]
-            ngramsSum = [bigramsSum[i] + unigramsSum[i] for i in range(2)]
+                for unigramA, unigramB in self._lingua.vectorize(feedback.content):
+                    bigrams.setdefault(unigramA, dict())
+                    bigrams[unigramA].setdefault(unigramB, [0, 0])
+                    bigrams[unigramA][unigramB][feedback.value] += 1
+            self._database.deleteBigrams()
+            self._database.insertBigrams(bigrams)
 
-            result = dict()
-            for bigram in bigrams:
-                measure = 0
-                for i in range(2):
-                    bigramFrequency = bigrams[bigram][i] / bigramsSum[i]
-                    unigramsFrequency = [unigrams[unigram][i] / unigramsSum[i] for unigram in bigram]
-                    unigramsFrequency = reduce(lambda res, x: res * x, unigramsFrequency, 1.)
-                    measure += math.log(bigramFrequency * ngramsSum[i] / unigramsFrequency, 2)
-                measure /= 2.
-                if measure > 14:
-                    result[self._lingua.concatenateUnigrams(bigram)] = bigrams[bigram]
-
+        def removeUselessBigrams(self):
             self._database.deleteUnigrams()
-            self._database.insertUnigrams(result)
+            pos, neg = self._database.countBigrams()
+            for bigram in self._database.selectBigrams():
+                success = True
+                unigramA, unigramB, *repeats = bigram
+                for value in range(2):
+                    XY, XNY, NXY, NXNY = [usage / pos for usage in self._database.countBigramUsage((unigramA, unigramB), value)]
+                    success &= math.log(XY / ((XY + XNY) * (XY + NXY) / (XY + XNY + NXY + NXNY)), 2) > 3
+                if success:
+                    self._database.insertUnigram(("{} {}".format(unigramA, unigramB), *repeats))
 
         def classify(self, content):
             result = [0, 0]
-            unigrams = filter(lambda x: x is not None, map(
-                self._lingua.matchMorphyPatterns,
-                self._lingua.vectorize(content)
-            ))
+            unigrams = self._lingua.vectorize(content)
             unigrams = tuple(self._lingua.concatenateUnigrams(bigram) for bigram in unigrams)
             for value in range(2):
                 logDenom = self._uniqueUnigrams + self._unigramsByClass[value]
@@ -91,7 +84,7 @@ class Classifier:
                     self._database.selectUnigramUsage(unigram, value) + 1) / logDenom
                 ) for unigram in unigrams)
             exps = [math.exp(val) for val in result]
-            exps = [exp / sum(exps) * 100 for exp in exps]
+            exps = [exp / (sum(exps) + 0.01) * 100 for exp in exps]
             # print(content)
             # print(unigrams)
             # input()

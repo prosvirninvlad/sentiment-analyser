@@ -23,13 +23,7 @@ class Word:
 
 BIGRAM_PATTERNS = (
 	(Word.NOUN, Word.ADJF),
-	(Word.ADVB, Word.ADVB),
-	(Word.ADJF, Word.ADVB),
-	(Word.ADVB, Word.VERB),
-	(Word.ADJF, Word.ADJF),
-	(Word.VERB, Word.ADJF),
-	(Word.VERB, Word.PRTF),
-	(Word.PRCL, Word.VERB),
+	(Word.VERB, Word.ADVB),
 )
 
 class Lingua:
@@ -53,15 +47,24 @@ class Lingua:
 			for sentence in self._genSentences(content):
 				for area in [x.strip() for x in re.split("[;,]", sentence)]:
 					unigrams = self._genUnigrams(area)
-					for i in range(len(unigrams) - 1):
-						yield (unigrams[i], unigrams[i + 1])
+					for pos in range(len(unigrams)):
+						naming = self._getWordNaming(unigrams[pos])
+						for patternA, patternB in BIGRAM_PATTERNS:
+							if naming == patternA:
+								range_lf = pos - 2
+								range_lf = range_lf if range_lf > 0 else 0
+								range_rt = pos + 2
+								range_rt = range_rt if range_lf > (len(unigrams)) else len(unigrams)
+								for x in range(range_lf, range_rt):
+									naming = self._getWordNaming(unigrams[x])
+									if naming == patternB: yield (unigrams[pos], unigrams[x])
 
 		def concatenateUnigrams(self, unigrams):
 			return " ".join(unigrams)
 		
 		def matchMorphyPatterns(self, bigram):
+			return bigram
 			namings = tuple(self._getWordNaming(unigram) for unigram in bigram)
-			# print("{} {}: {} {}".format(*bigram, *namings))
 			for pattern in BIGRAM_PATTERNS:
 				if namings == pattern: return tuple(self._stemmer.stemWords(bigram))
 				reverse = tuple(reversed(namings))
