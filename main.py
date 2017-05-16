@@ -48,9 +48,9 @@ def benchmark():
 
 def classify(args):
     classifier = Classifier.instance()
-    result, percentages = classifier.classify(args.pop())
-    print("-: {:.2f}%\n+: {:.2f}%".format(*percentages))
-    print("Результат: {}".format("+" if result else "-"))
+    negChance, posChance = classifier.classify(args.pop())
+    classifierResult = posChance > negChance
+    print("Результат: {} (-: {:.2f}%, +: {:.2f}%)".format("+" if classifierResult else "-", negChance, posChance))
 
 def help():
     print("Usage: [--collect restaurant_name --type pos|neg --how-many number [--benchmark]] [--train] [--benchmark] [--classify content]")

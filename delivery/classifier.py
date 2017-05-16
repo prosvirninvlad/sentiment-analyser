@@ -65,11 +65,20 @@ class Classifier:
             self._database.insertBigrams(bigrams)
 
         def removeUselessBigrams(self):
+            bigrams = dict()
             self._database.deleteUnigrams()
             for bigram in self._database.selectBigrams():
                 unigramA, unigramB, *repeats = bigram
                 if self.validateBigram((unigramA, unigramB)):
-                    self._database.insertUnigram(("{} {}".format(unigramA, unigramB), *repeats))
+                    unigram = self.buildUnigram((unigramA, unigramB))
+                    bigrams.setdefault(unigram, [0, 0])
+                    for pos in range(2):
+                        bigrams[unigram][pos] += repeats[pos]
+            self._database.insertUnigrams(bigrams)
+        
+        def buildUnigram(self, bigram):
+            bigram = self._lingua.stemWords(bigram)
+            return "{} {}".format(*bigram)
         
         def validateBigram(self, bigram):
             THRESHOLD = 3
@@ -82,7 +91,7 @@ class Classifier:
         def classify(self, content):
             result = [0, 0]
             unigrams = self._lingua.vectorize(content)
-            unigrams = [self._lingua.concatenateUnigrams(bigram) for bigram in unigrams if self.validateBigram(bigram)]
+            unigrams = [self.buildUnigram(bigram) for bigram in unigrams if self.validateBigram(bigram)]
             for value in range(2):
                 logDenom = self._uniqueUnigrams + self._unigramsByClass[value]
                 result[value] = math.log(self._unigramsByClass[value] / self._feedbacks) + sum(math.log((

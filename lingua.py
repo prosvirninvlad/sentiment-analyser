@@ -28,6 +28,8 @@ BIGRAM_PATTERNS = (
 	(Word.VERB, Word.NOUN),
 	(Word.VERB, Word.ADJF),
 	(Word.PRCL, Word.VERB),
+	(Word.CONJ, Word.ADVB),
+	(Word.ADJF, Word.ADVB),
 )
 
 class Lingua:
@@ -58,6 +60,9 @@ class Lingua:
 
 		def concatenateUnigrams(self, unigrams):
 			return " ".join(unigrams)
+		
+		def stemWords(self, words):
+			return self._stemmer.stemWords(words)
 		
 		def matchMorphyPatterns(self, bigram):
 			namings = tuple(self._getWordNaming(unigram) for unigram in bigram)
