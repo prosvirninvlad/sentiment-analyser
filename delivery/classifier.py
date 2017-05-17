@@ -69,11 +69,12 @@ class Classifier:
             self._database.deleteUnigrams()
             for bigram in self._database.selectBigrams():
                 unigramA, unigramB, *repeats = bigram
-                if self.validateBigram((unigramA, unigramB)):
-                    unigram = self.buildUnigram((unigramA, unigramB))
-                    bigrams.setdefault(unigram, [0, 0])
-                    for pos in range(2):
-                        bigrams[unigram][pos] += repeats[pos]
+                unigram = (unigramA, unigramB)
+                measures = self.validateBigram(unigram)
+                unigram = self.buildUnigram(unigram)
+                bigrams.setdefault(unigram, [0, 0])
+                for pos in range(2):
+                    bigrams[unigram][pos] += repeats[pos] if measures[pos] else 0
             self._database.insertUnigrams(bigrams)
         
         def buildUnigram(self, bigram):
@@ -82,21 +83,24 @@ class Classifier:
         
         def validateBigram(self, bigram):
             THRESHOLD = 3
-            measure = 0
+            measures = []
             for value in range(2):
                 XY, XNY, NXY, NXNY = [usage / self._bigramsCount[value] for usage in self._database.countBigramUsage(bigram, value)]
-                measure += math.log(XY / ((XY + XNY) * (XY + NXY) / (XY + XNY + NXY + NXNY)), 2)
-            return (measure / 2.) > THRESHOLD
+                measures.append(math.log(XY / ((XY + XNY) * (XY + NXY) / (XY + XNY + NXY + NXNY)), 2) > THRESHOLD)
+            return measures
 
         def classify(self, content):
             result = [0, 0]
-            unigrams = self._lingua.vectorize(content)
-            unigrams = [self.buildUnigram(bigram) for bigram in unigrams if self.validateBigram(bigram)]
+            unigrams = [[], []]
+            for bigram in self._lingua.vectorize(content):
+                measures = self.validateBigram(bigram)
+                for pos in range(2):
+                    if measures[pos]: unigrams[pos].append(self.buildUnigram(bigram))
             for value in range(2):
                 logDenom = self._uniqueUnigrams + self._unigramsByClass[value]
                 result[value] = math.log(self._unigramsByClass[value] / self._feedbacks) + sum(math.log((
                     self._database.selectUnigramUsage(unigram, value) + 1) / logDenom
-                ) for unigram in unigrams)
+                ) for unigram in unigrams[value])
             result = [math.exp(val) for val in result]
             result = [val / sum(result) * 100 for val in result]
             return result
