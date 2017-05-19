@@ -82,11 +82,11 @@ class Classifier:
             return "{} {}".format(*bigram)
         
         def validateBigram(self, bigram):
-            THRESHOLD = 3
+            THRESHOLD = 1
             measures = []
             for value in range(2):
                 XY, XNY, NXY, NXNY = [usage / self._bigramsCount[value] for usage in self._database.countBigramUsage(bigram, value)]
-                measures.append(math.log(XY / ((XY + XNY) * (XY + NXY) / (XY + XNY + NXY + NXNY)), 2) > THRESHOLD)
+                measures.append(math.log(XY / ((XY + XNY) * (XY + NXY) / (XY + XNY + NXY + NXNY)), 2) >= THRESHOLD)
             return measures
 
         def classify(self, content):
