@@ -112,8 +112,8 @@ class Database:
 			self._db.commit()
 		
 		def countBigramUsage(self, bigram, posFrequency):
-			query = "select sum({}) from {} where %s unigramA = ? and %s unigramB = ?;".format(
-				"posFrequency" if posFrequency else "negFrequency",
+			query = "select sum({}) + sum({}) from {} where %s unigramA = ? and %s unigramB = ?;".format(
+				"posFrequency", "negFrequency",
 				self._bigramsTable.name)
 			usage = []
 			quantors = ("", "not")
