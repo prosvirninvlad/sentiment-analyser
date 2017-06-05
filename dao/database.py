@@ -29,7 +29,7 @@ class Database:
 				("test", "integer"),
 			))
 			self._createTable(self._feedbacksTable)
-			self._unigramsTable = Table("unigrams", (
+			self._unigramsTable = Table("components", (
 				("id", "integer primary key autoincrement"),
 				("content", "text"),
 				("negFrequency", "integer"),

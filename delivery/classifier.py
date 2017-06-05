@@ -32,7 +32,7 @@ class Classifier:
                 expertValue = bool(feedback.value)
                 negChance, posChance = self.classify(feedback.content)
                 classfValue = posChance > negChance
-                print("({}): {}/{} (-: {:.2f}%, +: {:.2f}%)".format(num, expertValue, classfValue, negChance, posChance))
+                print("({}): Expert: {} / Classifier: {}".format(num, expertValue, classfValue))
                 if expertValue:
                     if classfValue: truePos += 1
                     else: falseNeg += 1
@@ -51,7 +51,7 @@ class Classifier:
             return accuracy
 
         def train(self):
-            # self.collectBigrams()
+            self.collectBigrams()
             self.removeUselessBigrams()
         
         def collectBigrams(self):
@@ -94,6 +94,4 @@ class Classifier:
                 result[value] = math.log(self._unigramsByClass[value] / self._feedbacks) + sum(math.log((
                     self._database.selectUnigramUsage(unigram, value) + 1) / logDenom
                 ) for unigram in unigrams)
-            result = [math.exp(val) for val in result]
-            result = [val / sum(result) * 100 for val in result]
             return result

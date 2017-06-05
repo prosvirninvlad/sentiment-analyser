@@ -50,7 +50,7 @@ def classify(args):
     classifier = Classifier.instance()
     negChance, posChance = classifier.classify(args.pop())
     classifierResult = posChance > negChance
-    print("Результат: {} (-: {:.2f}%, +: {:.2f}%)".format("+" if classifierResult else "-", negChance, posChance))
+    print("Результат: {}".format("+" if classifierResult else "-"))
 
 def help():
     print("Usage: [--collect restaurant_name --type pos|neg --how-many number [--benchmark]] [--train] [--benchmark] [--classify content]")
